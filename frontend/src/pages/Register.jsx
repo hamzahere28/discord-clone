@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
-import { useAuth } from "../context/authContext";
+import { MessageCircle, UserPlus } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
   const { register, loading } = useAuth();
@@ -40,13 +40,26 @@ export default function Register() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={submitHandler}>
-        <div className="auth-logo">
-          <MessageCircle size={42} />
+      <form className="auth-card auth-card-upgraded" onSubmit={submitHandler}>
+        <div className="auth-brand-block">
+          <div className="auth-logo">
+            <MessageCircle size={42} />
+          </div>
+
+          <div>
+            <h1>Icord</h1>
+            <p>Create your account and start chatting.</p>
+          </div>
         </div>
 
-        <h1>Create account</h1>
-        <p>Start chatting with communities.</p>
+        <div className="auth-route-tabs">
+          <Link to="/login">
+            Login
+          </Link>
+          <Link className="active" to="/register">
+            Register
+          </Link>
+        </div>
 
         {error && (
           <div className="error-box">
@@ -97,6 +110,7 @@ export default function Register() {
         />
 
         <button disabled={loading}>
+          <UserPlus size={17} />
           {loading ? "Creating..." : "Create account"}
         </button>
 

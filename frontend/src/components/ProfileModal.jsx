@@ -1,96 +1,218 @@
+import { Camera, Save, User, FileText, Circle, X } from "lucide-react";
 import { useState } from "react";
-import { Camera, Save } from "lucide-react";
-import Modal from "./Modal";
-import { useAuth } from "../context/authContext";
+import { useAuth } from "../context/AuthContext";
+
+const BACKEND_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
 export default function ProfileModal({ onClose }) {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile: saveProfile } = useAuth();
 
-  const [form, setForm] = useState({
-    username: user?.username || "",
-    avatar: user?.avatar || "",
-    status: user?.status || "online"
-  });
+  const [username, setUsername] = useState(user?.username || "");
+  const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [bio, setBio] = useState(user?.bio || "");
+  const [status, setStatus] = useState(user?.status || "online");
+  const [profileImage, setProfileImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(
+    user?.avatarUrl
+      ? user.avatarUrl.startsWith("data:") || user.avatarUrl.startsWith("http")
+        ? user.avatarUrl
+        : `${BACKEND_URL}${user.avatarUrl}`
+      : ""
+  );
+  const [loading, setLoading] = useState(false);
 
-  const [saving, setSaving] = useState(false);
+  const handleImageChange = (e) => {
+    const selected = e.target.files?.[0];
 
-  const submitHandler = async (e) => {
-    e.preventDefault();
+    if (!selected) return;
 
-    setSaving(true);
-
-    await updateProfile(form);
-
-    setSaving(false);
-    onClose();
+    setProfileImage(selected);
+    setPreviewImage(URL.createObjectURL(selected));
   };
 
-  return (
-    <Modal title="Edit Profile" onClose={onClose}>
-      <form className="profile-form" onSubmit={submitHandler}>
-        <div className="profile-preview-card">
-          <div className="profile-banner" />
+  const updateProfile = async (e) => {
+    e.preventDefault();
 
-          <div className="profile-avatar-large">
-            {form.avatar || form.username.charAt(0).toUpperCase()}
-            <span className={`profile-status-dot ${form.status}`} />
+    try {
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("username", username.trim());
+      formData.append("avatar", avatar.trim().slice(0, 2).toUpperCase());
+      formData.append("bio", bio.trim());
+      formData.append("status", status);
+
+      if (profileImage) {
+        formData.append("avatarImage", profileImage);
+      }
+
+      await saveProfile(formData);
+      onClose();
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update profile"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const avatarText =
+    avatar ||
+    username?.charAt(0)?.toUpperCase() ||
+    user?.username?.charAt(0)?.toUpperCase() ||
+    "U";
+
+  return (
+    <div className="clean-profile-overlay" onClick={onClose}>
+      <form
+        className="clean-profile-modal"
+        onSubmit={updateProfile}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="clean-profile-header">
+          <div className="clean-title-wrap">
+            <div className="clean-title-icon">
+              <User size={24} />
+            </div>
+
+            <div>
+              <h2>Edit Profile</h2>
+              <p>Customize how you appear to others</p>
+            </div>
           </div>
 
-          <div className="profile-preview-info">
-            <h3>{form.username || "Your Name"}</h3>
-            <p>{user.email}</p>
+          <button type="button" className="clean-close-btn" onClick={onClose}>
+            <X size={22} />
+          </button>
+        </div>
+
+        <div className="clean-profile-card">
+          <div className="clean-banner" />
+
+          <div className="clean-profile-main">
+            <div className="clean-avatar-large">
+              {previewImage ? (
+                <img
+                  src={previewImage}
+                  alt=""
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    setPreviewImage("");
+                  }}
+                />
+              ) : (
+                <span>{avatarText}</span>
+              )}
+
+              <small className={`clean-status ${status}`} />
+            </div>
+
+            <div className="clean-user-info">
+              <h3>{username || "Your name"}</h3>
+              <p>{user?.email}</p>
+            </div>
+
+            <label className="clean-change-img">
+              <Camera size={17} />
+              Change Image
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </label>
           </div>
         </div>
 
-        <label>Display name</label>
-        <input
-          value={form.username}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              username: e.target.value
-            })
-          }
-          placeholder="Your display name"
-        />
+        <div className="clean-upload-box">
+          <label className="clean-upload-circle">
+            <Camera size={24} />
+            <strong>Upload Image</strong>
+            <span>PNG, JPG, GIF</span>
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+          </label>
 
-        <label>Avatar text</label>
-        <div className="input-icon-row">
-          <Camera size={18} />
+          <div className="clean-file-info">
+            <label className="clean-file-btn">
+              Choose File
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </label>
+
+            <span>{profileImage ? profileImage.name : "No file chosen"}</span>
+          </div>
+        </div>
+
+        <label className="clean-label">Display Name</label>
+        <div className="clean-input">
+          <User size={18} />
           <input
-            value={form.avatar}
-            maxLength={2}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                avatar: e.target.value.toUpperCase()
-              })
-            }
-            placeholder="Example: H"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Display name"
+            required
           />
         </div>
 
-        <label>Status</label>
-        <select
-          value={form.status}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              status: e.target.value
-            })
-          }
-        >
-          <option value="online">Online</option>
-          <option value="idle">Idle</option>
-          <option value="dnd">Do Not Disturb</option>
-          <option value="offline">Invisible</option>
-        </select>
+        <label className="clean-label">Avatar Text</label>
+        <div className="clean-input">
+          <div className="clean-mini-avatar">{avatarText}</div>
+          <input
+            value={avatar}
+            maxLength={2}
+            onChange={(e) => setAvatar(e.target.value.toUpperCase())}
+            placeholder="Example: S"
+          />
+        </div>
 
-        <button className="save-profile-btn" disabled={saving}>
-          <Save size={18} />
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
+        <label className="clean-label">Bio</label>
+        <div className="clean-input">
+          <FileText size={18} />
+          <input
+            value={bio}
+            maxLength={190}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Tell people about yourself..."
+          />
+          <small>{bio.length}/190</small>
+        </div>
+
+        <label className="clean-label">Status</label>
+        <div className="clean-input">
+          <Circle size={14} className={`clean-status-icon ${status}`} />
+
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="online">Online</option>
+            <option value="idle">Idle</option>
+            <option value="dnd">Do Not Disturb</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
+
+        <div className="clean-profile-actions">
+          <button type="button" className="cancel" onClick={onClose}>
+            Cancel
+          </button>
+
+          <button type="submit" disabled={loading}>
+            <Save size={18} />
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
       </form>
-    </Modal>
+    </div>
   );
 }

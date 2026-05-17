@@ -1,12 +1,19 @@
-import { Crown, ShieldCheck } from "lucide-react";
+import { Crown, ShieldCheck, AtSign } from "lucide-react";
 
 export default function MembersPanel({ server }) {
   if (!server) {
     return <aside className="members-panel" />;
   }
 
-  const owners = server.members?.filter((m) => m.role === "owner") || [];
-  const members = server.members?.filter((m) => m.role !== "owner") || [];
+  const validMembers = server.members?.filter((m) => m?.user?._id) || [];
+  const owners = validMembers.filter((m) => m.role === "owner");
+  const admins = validMembers.filter((m) => m.role === "admin");
+  const moderators = validMembers.filter((m) => m.role === "moderator");
+  const members = validMembers.filter((m) => m.role === "member");
+
+  const copyMention = (username) => {
+    navigator.clipboard.writeText(`@${username}`);
+  };
 
   const renderMember = (member) => (
     <div className="member-item detailed-member" key={member.user._id}>
@@ -30,6 +37,14 @@ export default function MembersPanel({ server }) {
 
         <span>{member.role}</span>
       </div>
+
+      <button
+        className="mention-copy-btn"
+        title="Copy mention"
+        onClick={() => copyMention(member.user.username)}
+      >
+        <AtSign size={14} />
+      </button>
     </div>
   );
 
@@ -40,7 +55,7 @@ export default function MembersPanel({ server }) {
 
         <div className="stats-grid">
           <div>
-            <strong>{server.members?.length || 0}</strong>
+            <strong>{validMembers.length}</strong>
             <span>Members</span>
           </div>
 
@@ -51,13 +66,35 @@ export default function MembersPanel({ server }) {
         </div>
       </div>
 
-      <h4>Members — {server.members?.length || 0}</h4>
+      <h4>Members - {validMembers.length}</h4>
 
-      <div className="member-group-title">Owner</div>
-      {owners.map(renderMember)}
+      {owners.length > 0 && (
+        <>
+          <div className="member-group-title">Owner</div>
+          {owners.map(renderMember)}
+        </>
+      )}
 
-      <div className="member-group-title">Community</div>
-      {members.map(renderMember)}
+      {admins.length > 0 && (
+        <>
+          <div className="member-group-title">Admins</div>
+          {admins.map(renderMember)}
+        </>
+      )}
+
+      {moderators.length > 0 && (
+        <>
+          <div className="member-group-title">Moderators</div>
+          {moderators.map(renderMember)}
+        </>
+      )}
+
+      {members.length > 0 && (
+        <>
+          <div className="member-group-title">Community</div>
+          {members.map(renderMember)}
+        </>
+      )}
     </aside>
   );
 }
